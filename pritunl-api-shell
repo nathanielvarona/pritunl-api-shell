@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+
+# # pritunl-api-shell - Pritunl API curl shell wrapper for secure and simplified command-line requests
+# Simple usage: <this-script> <method> <path> [payload]
+
+if [ $# -eq 0 ]; then
+  echo "Usage: ${0} <method> <path> [payload]"
+  echo "Example: ${0} GET /entity-uri"
+  echo "Example: ${0} POST /entity-uri '{\"name\":\"New Entity\"}'"
+  echo "Example: ${0} PUT /entity-uri '{\"name\":\"Update Entity\"}'"
+  echo "Example: ${0} DELETE /entity-uri"
+  exit 1
+fi
+
+api_token=${PRITUNL_API_TOKEN:-}
+api_secret=${PRITUNL_API_SECRET:-}
+base_url=${PRITUNL_BASE_URL:-}
+
+auth_timestamp=$(date +%s)
+auth_nonce=$(uuidgen | tr -d -)
+auth_string="$api_token&$auth_timestamp&$auth_nonce&$(echo "$1" | tr 'a-z' 'A-Z')&$2"
+auth_signature=$(echo -n "$auth_string" | openssl dgst -sha256 -hmac "$api_secret" -binary | base64 -w 0)
+
+headers=(
+  -H "Auth-Token: $api_token"
+  -H "Auth-Timestamp: $auth_timestamp"
+  -H "Auth-Nonce: $auth_nonce"
+  -H "Auth-Signature: $auth_signature"
+  -H "Content-Type: application/json"
+)
+
+curl_output=$(curl -sSL -X "$1" "${headers[@]}" "${base_url}${2}" -d "${3:-}")
+
+if command -v jq &> /dev/null; then
+  echo "$curl_output" | jq -C
+else
+  echo "$curl_output"
+fi
