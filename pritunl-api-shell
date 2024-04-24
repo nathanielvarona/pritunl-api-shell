@@ -20,33 +20,36 @@ if [ $# -eq 0 ]; then
 fi
 
 # Load API credentials and base URL from environment variables
-base_url=${PRITUNL_BASE_URL:-}
-api_token=${PRITUNL_API_TOKEN:-}
-api_secret=${PRITUNL_API_SECRET:-}
+base_url=${PRITUNL_BASE_URL:-}  # Get the base URL from the environment variable
+api_token=${PRITUNL_API_TOKEN:-}  # Get the API token from the environment variable
+api_secret=${PRITUNL_API_SECRET:-}  # Get the API secret from the environment variable
 
 # Generate authentication timestamp and nonce
-auth_timestamp=$(date +%s)  # Get the current timestamp
-auth_nonce=$(uuidgen | tr -d -)  # Generate a random nonce
+auth_timestamp=$(date +%s)  # Get the current timestamp in seconds
+auth_nonce=$(uuidgen | tr -d -)  # Generate a random nonce without hyphens
 
 # Construct the authentication string and signature
-auth_string="$api_token&$auth_timestamp&$auth_nonce&$(echo "$1" | tr 'a-z' 'A-Z')&$2"
-hmacv=$(echo -n "$auth_string" | openssl dgst -sha256 -hmac "$api_secret" -binary)
-auth_signature=$(echo -n "$hmacv" | base64 -w 0)
+auth_string="$api_token&$auth_timestamp&$auth_nonce&${1^^}&$2"  # Create the authentication string
+hmacv=$(echo -n "$auth_string" | openssl dgst -sha256 -hmac "$api_secret" -binary)  # Generate the HMAC signature
+auth_signature=$(echo -n "$hmacv" | base64 -w 0)  # Encode the signature in base64
 
 # Set the API request headers
 headers=(
-  -H "Auth-Token: $api_token"  # API token
-  -H "Auth-Timestamp: $auth_timestamp"  # Timestamp
-  -H "Auth-Nonce: $auth_nonce"  # Nonce
-  -H "Auth-Signature: $auth_signature"  # Signature
-  -H "Content-Type: application/json"  # JSON content type
+  -H "Auth-Token: $api_token"  # API token header
+  -H "Auth-Timestamp: $auth_timestamp"  # Timestamp header
+  -H "Auth-Nonce: $auth_nonce"  # Nonce header
+  -H "Auth-Signature: $auth_signature"  # Signature header
+  -H "Content-Type: application/json"  # JSON content type header
 )
 
+api_path=${base_url}${2}  # Construct the full API path
+request_payload="${3:-}"  # Get the request payload (if provided)
+
 # Make the API request using curl
-response=$(curl -sSL -X "$1" "${headers[@]}" "${base_url}${2}" -d "${3:-}")
+response=$(curl -sSL -X "$1" "${headers[@]}" "${api_path}" -d "${request_payload}")  # Make the API request
 
 # Check the response code
-if [ "${response%% *}" -ne 200 ]; then
+if [ $? -ne 0 ]; then
   # Output the raw error response
   echo "$response" >&2
   exit 1
@@ -54,6 +57,12 @@ fi
 
 # Pretty-print the output using jq if available
 if command -v jq &> /dev/null; then
+  # Check if the response is valid JSON
+  if ! echo "$response" | jq -e . >/dev/null 2>&1; then
+    # If not valid JSON, output the raw error response
+    echo "$response" >&2
+    exit 1
+  fi
   # Use jq to format the output
   echo "$response" | jq
 else
