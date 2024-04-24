@@ -25,8 +25,8 @@ api_token=${PRITUNL_API_TOKEN:-}
 api_secret=${PRITUNL_API_SECRET:-}
 
 # Generate authentication timestamp and nonce
-auth_timestamp=$(date +%s)
-auth_nonce=$(uuidgen | tr -d -)
+auth_timestamp=$(date +%s)  # Get the current timestamp
+auth_nonce=$(uuidgen | tr -d -)  # Generate a random nonce
 
 # Construct the authentication string and signature
 auth_string="$api_token&$auth_timestamp&$auth_nonce&$(echo "$1" | tr 'a-z' 'A-Z')&$2"
@@ -35,21 +35,28 @@ auth_signature=$(echo -n "$hmacv" | base64 -w 0)
 
 # Set the API request headers
 headers=(
-  -H "Auth-Token: $api_token"
-  -H "Auth-Timestamp: $auth_timestamp"
-  -H "Auth-Nonce: $auth_nonce"
-  -H "Auth-Signature: $auth_signature"
-  -H "Content-Type: application/json"
+  -H "Auth-Token: $api_token"  # API token
+  -H "Auth-Timestamp: $auth_timestamp"  # Timestamp
+  -H "Auth-Nonce: $auth_nonce"  # Nonce
+  -H "Auth-Signature: $auth_signature"  # Signature
+  -H "Content-Type: application/json"  # JSON content type
 )
 
 # Make the API request using curl
-curl_output=$(curl -sSL -X "$1" "${headers[@]}" "${base_url}${2}" -d "${3:-}")
+response=$(curl -sSL -X "$1" "${headers[@]}" "${base_url}${2}" -d "${3:-}")
+
+# Check the response code
+if [ "${response%% *}" -ne 200 ]; then
+  # Output the raw error response
+  echo "$response" >&2
+  exit 1
+fi
 
 # Pretty-print the output using jq if available
 if command -v jq &> /dev/null; then
   # Use jq to format the output
-  echo "$curl_output" | jq -C
+  echo "$response" | jq
 else
   # Output the raw response
-  echo "$curl_output"
+  echo "$response"
 fi
