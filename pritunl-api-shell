@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
-# pritunl-api-shell - Pritunl API curl shell wrapper for secure and simplified command-line requests
-# Simple usage: <this-script> <method> <path> [payload]
+# Pritunl API shell wrapper for secure and simplified command-line requests
+# Usage: <this-script> <method> <path> [payload]
 
-# Set up error handling: exit on error, unset variables, and pipefail
+# Enable error handling: exit on error, unset variables, and pipefail
 set -euo pipefail
 
 # Check if the required arguments are provided
@@ -19,10 +19,10 @@ if [ $# -eq 0 ]; then
   exit 1
 fi
 
-# Set API token, secret, and base URL from environment variables
+# Load API credentials and base URL from environment variables
+base_url=${PRITUNL_BASE_URL:-}
 api_token=${PRITUNL_API_TOKEN:-}
 api_secret=${PRITUNL_API_SECRET:-}
-base_url=${PRITUNL_BASE_URL:-}
 
 # Generate authentication timestamp and nonce
 auth_timestamp=$(date +%s)
@@ -30,7 +30,8 @@ auth_nonce=$(uuidgen | tr -d -)
 
 # Construct the authentication string and signature
 auth_string="$api_token&$auth_timestamp&$auth_nonce&$(echo "$1" | tr 'a-z' 'A-Z')&$2"
-auth_signature=$(echo -n "$auth_string" | openssl dgst -sha256 -hmac "$api_secret" -binary | base64 -w 0)
+hmacv=$(echo -n "$auth_string" | openssl dgst -sha256 -hmac "$api_secret" -binary)
+auth_signature=$(echo -n "$hmacv" | base64 -w 0)
 
 # Set the API request headers
 headers=(
@@ -46,7 +47,9 @@ curl_output=$(curl -sSL -X "$1" "${headers[@]}" "${base_url}${2}" -d "${3:-}")
 
 # Pretty-print the output using jq if available
 if command -v jq &> /dev/null; then
+  # Use jq to format the output
   echo "$curl_output" | jq -C
 else
+  # Output the raw response
   echo "$curl_output"
 fi
