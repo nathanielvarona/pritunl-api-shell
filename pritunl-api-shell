@@ -10,10 +10,12 @@ set -euo pipefail
 if [ $# -eq 0 ]; then
   # Display usage examples and exit
   echo "Usage: ${0} <method> <path> [payload]"
-  echo "Example: ${0} GET /entity-uri"
-  echo "Example: ${0} POST /entity-uri '{\"name\":\"New Entity\"}'"
-  echo "Example: ${0} PUT /entity-uri '{\"name\":\"Update Entity\"}'"
-  echo "Example: ${0} DELETE /entity-uri"
+  echo ""
+  echo "Examples:"
+  echo "  ${0} GET /entity-uri"
+  echo "  ${0} POST /entity-uri '{\"name\":\"New Entity\"}'"
+  echo "  ${0} PUT /entity-uri '{\"name\":\"Update Entity\"}'"
+  echo "  ${0} DELETE /entity-uri"
   exit 1
 fi
 
