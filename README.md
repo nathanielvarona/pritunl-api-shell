@@ -42,4 +42,4 @@ Pritunl API Shell - a Curl wrapper for secure and simplified command-line reques
 ## Alternatives:
 
 * For [Postman](https://www.postman.com/) Users
-  + For a seamless API authentication experience, check out the [Pritunl API Authentication (for Postman Pre-Request Script)](https://gist.github.com/nathanielvarona/17222f2b8579027c8939712d85a1d022#file-pritunl-api-auth-postman-pre-request-js) script. This Postman pre-request script generates the necessary authentication headers for Pritunl API requests. Simply import the script into your Postman collection and enjoy effortless authentication!
+  + For a seamless API authentication experience, check out the [Pritunl API Authentication (for Postman Pre-Request Script)](https://gist.github.com/nathanielvarona/01f2115444020d328c03da8984e216a5#file-pritunl-api-auth-postman-pre-request-js) script. This Postman pre-request script generates the necessary authentication headers for Pritunl API requests. Simply import the script into your Postman collection and enjoy effortless authentication!
